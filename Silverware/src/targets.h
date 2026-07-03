@@ -211,10 +211,22 @@
 #ifdef Alienwhoop_ZERO
 //LEDS
 #define LED_NUMBER 1
+
+//三灯并联控制，共阴极，阳极各串电阻汇聚于16脚：PB2
+#define LED1PIN GPIO_Pin_2
+#define LED1PORT GPIOB
+//DD1,主控在上时的左侧
+#define LED1PIN GPIO_Pin_15
+#define LED1PORT GPIOA
+//DD3，主控在下时的右侧
+#define LED1PIN GPIO_Pin_5
+#define LED1PORT GPIOB
+/*
 #define LED1PIN GPIO_Pin_0
 #define LED1PORT GPIOF
 #define LED2PIN GPIO_Pin_0
 #define LED2PORT GPIOA
+*/
 
 //SOFT I2C & GYRO
 #define USE_HARDWARE_I2C
