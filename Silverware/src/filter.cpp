@@ -84,24 +84,21 @@ filter_lpf2 filter2[3];
 
 #if defined KALMAN_GYRO && defined GYRO_FILTER_PASS1
  #define SOFT_KALMAN_GYRO_PASS1 GYRO_FILTER_PASS1
+// NOTE: 此工程使用 -nostartfiles + 汇编启动文件，C++ 全局对象构造函数
+// (__libc_init_array) 不会执行！必须用 C++11 类内默认成员初始化，
+// 这样初始值会写入 .data 段由启动代码拷贝，Q/R 不会为 0 导致除零 NaN。
 class  filter_kalman
 {
     private:
-        float x_est_last ;
-        float P_last ; 
-        float Q;
-        float R;
+        float x_est_last = 0.0f;
+        float P_last = 0.0f;
+        float Q = 0.02f;
+#ifdef SOFT_KALMAN_GYRO_PASS1
+        float R = 0.02f/(float)SOFT_KALMAN_GYRO_PASS1;
+#else
+        float R = 0.1f;
+#endif
     public:
-        filter_kalman()
-        {
-            Q = 0.02; 
-            R = 0.1;
-
-            #ifdef SOFT_KALMAN_GYRO_PASS1
-            R = Q/(float)SOFT_KALMAN_GYRO_PASS1;
-            #endif
-					
-        }
         float  step( float in )   
         {    
 
@@ -128,20 +125,15 @@ filter_kalman filter[3];
 class  filter_kalman2
 {
     private:
-        float x_est_last ;
-        float P_last ; 
-        float Q;
-        float R;
+        float x_est_last = 0.0f;
+        float P_last = 0.0f;
+        float Q = 0.02f;
+#ifdef SOFT_KALMAN_GYRO_PASS2
+        float R = 0.02f/(float)SOFT_KALMAN_GYRO_PASS2;
+#else
+        float R = 0.1f;
+#endif
     public:
-        filter_kalman2()
-        {
-            Q = 0.02; 
-            R = 0.1;
-
-						#ifdef SOFT_KALMAN_GYRO_PASS2
-					  R = Q/(float)SOFT_KALMAN_GYRO_PASS2;
-            #endif
-        }
         float  step( float in )   
         {    
 

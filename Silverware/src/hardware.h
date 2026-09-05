@@ -52,16 +52,16 @@
 
 
 // hardware i2c speed ( 1000, 400 , 200 , 100Khz)
-#define HW_I2C_SPEED_FAST2
-//#define HW_I2C_SPEED_FAST
+//#define HW_I2C_SPEED_FAST2
+#define HW_I2C_SPEED_FAST
 //#define HW_I2C_SPEED_SLOW1
 //#define HW_I2C_SPEED_SLOW2
 
 
 // pins for hw i2c , select one only
 // select pins PB6 and PB7 OR select pins PA9 and PA10
-//#define HW_I2C_PINS_PB67
-#define HW_I2C_PINS_PA910
+#define HW_I2C_PINS_PB67
+//#define HW_I2C_PINS_PA910
 
 // pins for software i2c
 #define SOFTI2C_SDAPIN GPIO_Pin_10
@@ -116,7 +116,7 @@
 // enable the pwm pins to be used here ( multiple pins ok)
 //#define PWM_PA0
 //#define PWM_PA1
-#define PWM_PA2
+//#define PWM_PA2    // CRITICAL FIX: PA2 = XN297 CSN! PWM_PA2 会把 PA2 配成 TIM2 AF, 导致 GPIO 无法驱动 CSN, XN297 从未被选中!
 //#define PWM_PA3
 //#define PWM_PA4
 //#define PWM_PA5

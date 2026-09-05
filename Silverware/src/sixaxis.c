@@ -60,6 +60,9 @@ extern debug_type debug;
 #ifndef GYRO_ID_4
 #define GYRO_ID_4 0x72
 #endif
+#ifndef GYRO_ID_5
+#define GYRO_ID_5 0x19 // MPU-6880
+#endif
 
 void sixaxis_init( void)
 {
@@ -105,7 +108,7 @@ int sixaxis_check( void)
 	debug.gyroid = id;
 	#endif
 	
-	return (GYRO_ID_1==id||GYRO_ID_2==id||GYRO_ID_3==id||GYRO_ID_4==id );
+	return (GYRO_ID_1==id||GYRO_ID_2==id||GYRO_ID_3==id||GYRO_ID_4==id||GYRO_ID_5==id );
 	#else
 	return 1;
 	#endif

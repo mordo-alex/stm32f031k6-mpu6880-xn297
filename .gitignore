@@ -19,6 +19,17 @@ Desktop.ini
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
 
+# =========================
+# Build outputs (GCC)
+# =========================
+gcc/bwhoop
+gcc/*.elf
+gcc/*.hex
+*.elf
+*.hex
+*.bin
+obj/
+
 # Windows Installer files
 *.cab
 *.msi

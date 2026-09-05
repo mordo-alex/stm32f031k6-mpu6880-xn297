@@ -78,8 +78,13 @@ THE SOFTWARE.
 #endif
 
 #ifdef HW_I2C_SPEED_FAST
+#ifdef ENABLE_OVERCLOCK
+// 400khz (fast) (overclock 64Mhz)
+#define HW_I2C_TIMINGREG 0x00c0216c
+#else
 // 400khz (fast)
 #define HW_I2C_TIMINGREG 0x00901850
+#endif
 #endif
 
 #ifdef HW_I2C_SPEED_SLOW1

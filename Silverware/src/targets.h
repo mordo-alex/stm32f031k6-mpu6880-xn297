@@ -311,28 +311,36 @@
 #define GYRO_ID_2 0x98 
 #define GYRO_ID_3 0x78
 #define GYRO_ID_4 0x72
+#define GYRO_ID_5 0x19 // MPU-6880 的 WHO_AM_I 值
 #define SENSOR_ROTATE_90_CCW // 注意：后期试飞时如果发现飞机方向不对，改这里！
 
 // ==========================================
-// 3. 射频 XN297 通信总线配置 (完美契合你的逆向)
+// 3. 射频 XN297 通信总线配置 (3 线半双工, 与 XN297 手册 SPI 参考原理一致)
 // ==========================================
 #if defined(RX_SBUS) || defined(RX_DSMX_2048) || defined(RX_DSM2_1024) || defined(RX_CRSF) || defined(RX_IBUS)
 // ... (保留原本的串口接收机占位符，不用管它) ...
 #define SOFTSPI_NONE
 #define RADIO_CHECK
 #else
-// 你测出来的是标准的 4 线 SPI (MOSI 和 MISO 是分开的)
+// 4 线独立 MOSI/MISO — XN297 丝印引脚: 1=CE, 2=CSN, 3=SCK, 4=MOSI, 5=MISO, 6=IRQ
+// 用户确认的 MCU 连接 (权威):
+//   XN297 pin1 CE    -> MCU 15脚 = PB1
+//   XN297 pin2 CSN   -> MCU 10脚 = PA4
+//   XN297 pin3 SCK   -> MCU 11脚 = PA5
+//   XN297 pin4 MOSI  -> MCU 13脚 = PA7
+//   XN297 pin5 MISO  -> MCU 12脚 = PA6
+//   XN297 pin6 IRQ   -> 未接 (不影响 SPI)
 #define SOFTSPI_4WIRE
-#define SPI_MOSI_PIN GPIO_Pin_6    // PA6
+#define SPI_MOSI_PIN GPIO_Pin_7    // PA7 — XN297 pin4 MOSI (MCU13脚)
 #define SPI_MOSI_PORT GPIOA
-#define SPI_MISO_PIN GPIO_Pin_7    // PA7
+#define SPI_MISO_PIN GPIO_Pin_6    // PA6 — XN297 pin5 MISO (MCU12脚)
 #define SPI_MISO_PORT GPIOA
-#define SPI_CLK_PIN GPIO_Pin_5     // PA5
+#define SPI_CLK_PIN GPIO_Pin_5     // PA5 — XN297 pin3 SCK (MCU11脚)
 #define SPI_CLK_PORT GPIOA
-#define SPI_SS_PIN GPIO_Pin_4      // PA4 (CSN)
+#define SPI_SS_PIN GPIO_Pin_4      // PA4 — XN297 pin2 CSN (MCU10脚)
 #define SPI_SS_PORT GPIOA
 
-// 特别注意：你的 CE 引脚是受控的 (PB1)，必须定义出来
+// CE 信号 -> MCU 15脚 = PB1 (输出高使能 XN297)
 #define RADIO_XN297_CE_PIN GPIO_Pin_1
 #define RADIO_XN297_CE_PORT GPIOB
 
@@ -359,10 +367,11 @@
 // ==========================================
 // 5. 电机驱动配置 (对应你的四个 MOSFET)
 // ==========================================
-// 因为你的引脚太特殊了，直接绕过原版宏定义，进行底层直连：
-// 左下电机 (Q4 -> PA3)
-#define MOTOR0_PIN GPIO_Pin_3
-#define MOTOR0_PORT GPIOA
+// 注意: PA4/PA5/PA6/PA7/PB1 已被 XN297 SPI 占用!
+// 先禁用可能与 SPI 冲突的电机引脚, 待 RF 调通后再按实际原理图修正。
+// 原配置(已废弃): MOTOR0=PA3, MOTOR1=PA11, MOTOR2=PB8, MOTOR3=PA8
+//#define MOTOR0_PIN GPIO_Pin_3
+//#define MOTOR0_PORT GPIOA
 
 // 左上电机 (Q2 -> PA11)
 #define MOTOR1_PIN GPIO_Pin_11

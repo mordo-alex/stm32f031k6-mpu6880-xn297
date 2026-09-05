@@ -84,6 +84,8 @@ unsigned long autobindtime = 0;
 int autobind_inhibit = 0;
 int packet_period = PACKET_PERIOD;
 
+int debug_rxcheck = 0;
+
 void writeregs(uint8_t data[], uint8_t size)
 {
     spi_cson();
@@ -198,10 +200,10 @@ writeregs( regs_1e , sizeof(regs_1e) );
     xn_writereg(0, XN_TO_RX);   // power up, crc enabled, rx mode
 
 #ifdef RADIO_CHECK
-    int rxcheck = xn_readreg(0x0f); // rx address pipe 5   
+    debug_rxcheck = xn_readreg(0x0f); // rx address pipe 5   
     // should be 0xc6
     extern void failloop(int);
-    if (rxcheck != 0xc6)
+    if (debug_rxcheck != 0xc6)
         failloop(3);
 #endif
     

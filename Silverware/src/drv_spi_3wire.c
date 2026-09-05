@@ -29,6 +29,12 @@ void spi_init(void)
 	GPIO_InitStructure.GPIO_Pin = SPI_SS_PIN;
 	GPIO_Init(SPI_SS_PORT, &GPIO_InitStructure);
 	
+#ifdef RADIO_XN297_CE_PIN
+	// CE(PA7) -> 输出并拉高, 使能 XN297
+	GPIO_InitStructure.GPIO_Pin = RADIO_XN297_CE_PIN;
+	GPIO_Init(RADIO_XN297_CE_PORT, &GPIO_InitStructure);
+	RADIO_XN297_CE_PORT->BSRR = RADIO_XN297_CE_PIN;
+#endif
 		
   mosi_init_struct.GPIO_Pin = SPI_MOSI_PIN;
   mosi_init_struct.GPIO_Mode = GPIO_Mode_IN;
