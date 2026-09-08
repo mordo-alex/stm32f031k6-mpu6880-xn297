@@ -213,12 +213,9 @@ extern int onground;
   	  }
   }
 
-extern char aux[AUXNUMBER];
-if (aux[HORIZON]){
-	attitude[0] = atan2approx(GEstG[0], GEstG[2]) ;
-
-	attitude[1] = atan2approx(GEstG[1], GEstG[2])  ;
-}
+// attitude 始终计算, 便于串口遥测调试 (不依赖遥控器 aux[HORIZON])
+attitude[0] = atan2approx(GEstG[0], GEstG[2]) ;
+attitude[1] = atan2approx(GEstG[1], GEstG[2])  ;
 }
 
 

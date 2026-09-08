@@ -121,7 +121,7 @@ extern char aux[];
 
 
 //extern int packetpersecond;
-extern struct rxdebug rxdebug;
+extern int packetpersecond;
 
 void send_s_frame()
 {
@@ -131,7 +131,7 @@ void send_s_frame()
  sendint( (unsigned int) vbattfilt *10 + 0.5f );// vbatt mV 126 = 12.6
  sendint( 1000 ); // current mA
 	
-int rssi = rxdebug.packetpersecond;
+int rssi = packetpersecond;
 if (rssi > 255) rssi = 255;
 	
  sendbyte(rssi); // rssi

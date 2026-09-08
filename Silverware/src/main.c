@@ -165,7 +165,7 @@ clk_init();
 #endif
 	
 	
-	delay(100000);
+	delay(300000);   // 300ms (was 100ms): 冷启动时等电源/所有外设稳定后再初始化 I2C
 		
 	i2c_init();	
 	
@@ -177,16 +177,27 @@ clk_init();
 	pwm_set( MOTOR_BR , 0); 
 
 
-	sixaxis_init();
-	
-	if ( sixaxis_check() ) 
+	// ============ MPU6880 冷启动检测 (带重试) ============
+	// 背景: J-Link 复位运行时陀螺仪一直带电, 检测必成功;
+	//       但真正断电重启时 MCU 与陀螺仪同时上电, 时序稍差
+	//       第一次 I2C 读 WHO_AM_I 即失败 -> 直接 failloop(4)(LED 闪 4 下)。
+	// 修复: 最多重试 5 次, 每次先重新软复位并等待, 成功后清零 I2C 忙计数,
+	//       大幅提高断电重启的成功率 (硬件真的损坏/虚焊时仍会 4 闪)。
 	{
-		
-	}
-	else 
-	{
-        //gyro not found   
-		failloop(4);
+		extern int liberror;   // 硬件 I2C 忙/超时会累计 (failloop 7/8 用)
+		int gyro_found = 0;
+		for (int attempt = 0; attempt < 5 && !gyro_found; attempt++)
+		{
+			if (attempt) delay(200000);   // 失败后等 200ms 让电源/陀螺仪稳定
+			sixaxis_init();
+			gyro_found = sixaxis_check();
+		}
+		liberror = 0;   // 检测成功即认为 I2C 总线已恢复, 正常继续启动
+		if (!gyro_found)
+		{
+			//gyro not found   
+			failloop(4);
+		}
 	}
 	
 	adc_init();
@@ -559,6 +570,10 @@ rgb_dma_start();
 
 // receiver function
 checkrx();
+
+// LTM telemetry over serial (PA9 TX, 115200)
+extern void osdcycle(void);
+osdcycle();
 
 
 #ifdef DEBUG

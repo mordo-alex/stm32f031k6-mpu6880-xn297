@@ -85,6 +85,9 @@ int autobind_inhibit = 0;
 int packet_period = PACKET_PERIOD;
 
 int debug_rxcheck = 0;
+// 回读验证 XN297 寄存器写入是否生效 (用于调试 RF 不工作问题)
+int debug_rf_regs[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+int debug_rf_regs2[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 void writeregs(uint8_t data[], uint8_t size)
 {
@@ -187,6 +190,19 @@ writeregs( regs_1e , sizeof(regs_1e) );
 
 #ifdef RADIO_XN297L
     xn_writereg(0x1d, B00111000);   // 64 bit payload , software ce
+#endif
+
+#ifdef RADIO_XN297
+    xn_writereg(0x1d, B00011000);   // 64 bit payload , software ce
+#endif
+
+    // 正确的激活顺序 (nRF24L01/XN297 时序要求):
+    //   1. 先 PWR_UP=1 (CONFIG) 等晶体起振稳定
+    //   2. 再拉高 CE (0xFD 内部CE高) 进入接收
+    // 顺序反了 CE 高命令会在掉电时被丢弃, RX 永远不激活!
+    xn_writereg(0, XN_TO_RX);   // power up, crc enabled, rx mode
+    delay(2000);                // 等待晶体稳定+上电 (标准 1.5ms)
+#ifdef RADIO_XN297L
     spi_cson();
     spi_sendbyte(0xFD);         // internal CE high command
     spi_sendbyte(0);            // required for above
@@ -194,10 +210,12 @@ writeregs( regs_1e , sizeof(regs_1e) );
 #endif
 
 #ifdef RADIO_XN297
-    xn_writereg(0x1d, B00011000);   // 64 bit payload , software ce
+    spi_cson();
+    spi_sendbyte(0xFD);         // internal CE high command
+    spi_sendbyte(0);            // required for above
+    spi_csoff();
 #endif
-
-    xn_writereg(0, XN_TO_RX);   // power up, crc enabled, rx mode
+    delay(200);                 // RX 进入稳定接收
 
 #ifdef RADIO_CHECK
     debug_rxcheck = xn_readreg(0x0f); // rx address pipe 5   
@@ -205,6 +223,91 @@ writeregs( regs_1e , sizeof(regs_1e) );
     extern void failloop(int);
     if (debug_rxcheck != 0xc6)
         failloop(3);
+    // 回读关键寄存器验证写入是否真正生效
+    debug_rf_regs[0] = xn_readreg(CONFIG);      // 应=0x0F (PWR_UP+EN_CRC+CRCO+PRIM_RX)
+    debug_rf_regs[1] = xn_readreg(RF_SETUP);    // 应=0x07 (TX_POWER=3 -> 0x01|(3<<1))
+    debug_rf_regs[2] = xn_readreg(0x1d);        // 应=0x18 (64bit payload, software ce)
+    debug_rf_regs[3] = xn_readreg(RF_CH);       // 应=0    (bind on channel 0)
+    debug_rf_regs[4] = xn_readreg(EN_AA);       // 应=0    (auto ack off)
+    debug_rf_regs[5] = xn_readreg(EN_RXADDR);   // 应=1    (pipe 0 only)
+    debug_rf_regs[6] = xn_readreg(RX_PW_P0);    // 应=15   (payload size)
+    debug_rf_regs[7] = xn_readreg(STATUS);      // 状态, 正常非0
+    // CD 载波检测: RX模式下有信号时 bit0=1 (晶振起振+天线有信号才可能=1)
+    debug_rf_regs2[0] = xn_readreg(CD);         // 0x09 载波检测
+    // FIFO_STATUS
+    debug_rf_regs2[1] = xn_readreg(FIFO_STATUS);
+    // OBSERVE_TX (PLOS_CNT/ARC_CNT)
+    debug_rf_regs2[2] = xn_readreg(OBSERVE_TX);
+    // 回读 RX_ADDR_P0 低4字节 (确认地址写入)
+    debug_rf_regs2[3] = xn_readreg(RX_ADDR_P0);
+
+    // ================= TX+RX 自测 (最终裁决) =================
+    // TX/RX 共用 PLL+晶振
+    //   1) TX_DS=1        -> 晶振+PLL+发射链路 OK
+    //   2) 自收 CD=1      -> RX 前级检测到载波, 芯片 RX 完全正常
+    //   3) TX_DS=1 但自收 CD=0 -> RX 前级/天线匹配问题
+    {
+        int txpayload[6] = { 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55 };
+        int tx_ok = 0;
+        int rx_cd_seen = 0;
+        // --- TX 测试: 发一帧看 TX_DS ---
+        xn_writereg(STATUS, 0x70);
+        xn_command(FLUSH_TX);
+        xn_writereg(0, XN_TO_TX);
+        delay(200);                         // PLL 锁定
+        xn_writepayload(txpayload, 6);
+        for (int i = 0; i < 500; i++)
+          {
+              int st = xn_readreg(STATUS);
+              if (st & (1 << TX_DS))
+                {
+                    tx_ok = 1;
+                    break;
+                }
+              if (st & (1 << MAX_RT))
+                  break;
+              delay(10);                    // 10us
+          }
+        debug_rf_regs2[4] = tx_ok;
+        debug_rf_regs2[5] = xn_readreg(STATUS);
+        // --- RX 自收测试: 立即同频切 RX, 检测自己的载波 ---
+        for (int tries = 0; tries < 3 && !rx_cd_seen; tries++)
+          {
+              // 再发一帧 (确保载波在场)
+              xn_writereg(STATUS, 0x70);
+              xn_command(FLUSH_TX);
+              xn_writereg(0, XN_TO_TX);
+              delay(200);
+              xn_writepayload(txpayload, 6);
+              for (int i = 0; i < 200; i++)
+                {
+                    if (xn_readreg(STATUS) & (1 << TX_DS))
+                        break;
+                    delay(10);
+                }
+              // 立即切 RX
+              xn_writereg(STATUS, 0x70);
+              xn_writereg(0, XN_TO_RX);
+              delay(100);                   // RX 稳定
+              // 检测 CD (自己的载波应在上空)
+              for (int i = 0; i < 100; i++)
+                {
+                    if (xn_readreg(CD) & 1)
+                      {
+                          rx_cd_seen = 1;
+                          break;
+                      }
+                    delay(100);             // 总约10ms
+                }
+          }
+        debug_rf_regs2[6] = rx_cd_seen;     // 1=RX前级检测到载波!
+        // 恢复 RX 稳定
+        xn_writereg(STATUS, 0x70);
+        xn_command(FLUSH_TX);
+        xn_writereg(0, XN_TO_RX);
+        delay(200);
+        debug_rf_regs2[7] = xn_readreg(CD); // 恢复后 CD
+    }
 #endif
     
     if ( rx_bind_load )

@@ -49,10 +49,10 @@ void serial_init(void)
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
 
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;	
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;	// PA9 = USART1 TX (19脚)
   GPIO_Init(GPIOA, &GPIO_InitStructure); 
 	
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource14 , GPIO_AF_1);
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource9 , GPIO_AF_1);
 
  RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
 	

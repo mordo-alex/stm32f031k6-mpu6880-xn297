@@ -71,11 +71,12 @@ void sixaxis_init( void)
 	
 	i2c_writereg(  107 , 128);
 	 
- delay(40000);
+	delay(100000);   // 100ms (was 40000): 冷启动/软复位后给 MPU6880 更充分的恢复时间
 	
 
 // set pll to 1, clear sleep bit old type gyro (mpu-6050)	
 	i2c_writereg(  107 , 1);
+	delay(10000);    // 解除 sleep 后再等 10ms 再访问
 	
 	int newboard = !(0x68 == i2c_readreg(117) );
 

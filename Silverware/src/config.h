@@ -16,6 +16,10 @@
 //#define Silverlite_Brushless
 #define Alienwhoop_ZERO  
 
+// 串口 LTM 遥测 - 通过 PA9(TX,19脚) 发送姿态到 PC (115200)
+#define SERIAL_ENABLE
+#define OSD_LTM_PROTOCOL
+
 
 
 
